@@ -1,14 +1,11 @@
 import streamlit as st
 import google.generativeai as genai
 from PIL import Image
-import io
 
-# ---------------------------------------------------------
-# 1. إعدادات الصفحة
-# ---------------------------------------------------------
+# إعداد الصفحة
 st.set_page_config(page_title="TKN Studio", layout="wide")
 
-# تخصيص الألوان
+# التصميم والألوان
 st.markdown("""
 <style>
     .stApp { background-color: #0e1117; color: #ffffff; }
@@ -16,36 +13,26 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ---------------------------------------------------------
-# 2. التأكد من المفتاح (المحاولة من Secrets أو إدخال يدوي للطوارئ)
-# ---------------------------------------------------------
+# التأكد من المفتاح
 api_key = None
-
-# محاولة جلب المفتاح من Secrets
 try:
     if "GOOGLE_API_KEY" in st.secrets:
         api_key = st.secrets["GOOGLE_API_KEY"]
 except:
     pass
 
-# لو المفتاح مش موجود في Secrets، اطلب من المستخدم يدخله (حل مؤقت عشان يشتغل)
 if not api_key:
     st.sidebar.warning("⚠️ لم يتم العثور على مفتاح في Secrets")
-    api_key = st.sidebar.text_input("أدخل API Key هنا للتشغيل الفوري:", type="password")
+    api_key = st.sidebar.text_input("أدخل API Key هنا للتشغيل:", type="password")
 
 if not api_key:
-    st.warning("⬅️ من فضلك أدخل مفتاح API في القائمة الجانبية أو تأكد من إعدادات Secrets لتشغيل التطبيق.")
+    st.warning("⚠️ من فضلك أدخل مفتاح API للبدء.")
     st.stop()
 
-# إعداد Gemini
-try:
-    genai.configure(api_key=api_key)
-except Exception as e:
-    st.error(f"Error configuring API: {e}")
+# تشغيل Gemini
+genai.configure(api_key=api_key)
 
-# ---------------------------------------------------------
-# 3. واجهة TKN
-# ---------------------------------------------------------
+# واجهة البرنامج
 st.title("TKN – Product Imaging System")
 st.markdown("`Protocol: V25.7 | Status: ONLINE`")
 
@@ -59,7 +46,7 @@ with col1:
 with col2:
     angle = st.selectbox("Target Angle", [
         "Front View", "Right Profile", "Three-Quarter", 
-        "Top-Down", "High Hero", "Back Spine", "Macro Texture"
+        "Top-Down", "High Hero", "Back Spine"
     ])
     
     bg_color = st.text_input("Background", value="Pure White #FFFFFF")
@@ -70,27 +57,14 @@ with col2:
         else:
             with st.spinner("Processing TKN Protocol..."):
                 try:
-                    # فتح الصورة
                     image = Image.open(uploaded_file)
-                    
-                    # الموديل والبرومبت
                     model = genai.GenerativeModel('gemini-1.5-flash')
-                    prompt = f"Act as a professional product photographer. Transform this product image to have a {bg_color} background. View angle: {angle}. Keep strict fidelity to the original product details. Output a high-quality photorealistic image."
+                    prompt = f"Professional product photography. Transform background to {bg_color}. Angle: {angle}. High quality, photorealistic."
                     
-                    # التنفيذ
                     response = model.generate_content([prompt, image])
                     
-                    # عرض النتيجة
                     st.success("Generation Complete!")
-                    st.write(response.text) # في حالة لو الموديل رجع وصف
+                    st.write(response.text)
                     
-                    # لو الموديل رجع صورة (حسب التحديثات)
-                    if hasattr(response, 'parts'):
-                         for part in response.parts:
-                            if hasattr(part, "inline_data"): # images
-                                st.image(part.inline_data, caption="Generated Image")
-                            elif hasattr(part, "text"):
-                                st.write(part.text)
-                                
                 except Exception as e:
-                    st.error(f"Error
+                    st.error(f"Error: {e}")
